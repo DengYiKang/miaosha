@@ -9,13 +9,12 @@ import com.yikang.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
+
 
 @Controller("user")
 @RequestMapping("/user")
-public class UserController {
+public class UserController extends BaseController {
 
     @Autowired
     private UserService userService;
@@ -24,6 +23,8 @@ public class UserController {
     @ResponseBody
     public CommonReturnType getUser(@RequestParam(name = "id") Integer id) throws BusinessException {
         UserModel userModel = userService.getUserById(id);
+        userModel = null;
+        userModel.setName("123");
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_EXIT);
         }
@@ -38,4 +39,6 @@ public class UserController {
         BeanUtils.copyProperties(userModel, userVO);
         return userVO;
     }
+
+
 }

@@ -14,6 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BaseController {
+
+    public final static String CONTENT_TYPE_FORMED = "application/x-www-form-urlencoded";
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody

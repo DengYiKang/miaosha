@@ -1,6 +1,6 @@
 package com.yikang.error;
 
-public enum EmBusinessError implements CommonError{
+public enum EmBusinessError implements CommonError {
     //通用错误类型
     PARAMETER_VALIDATION_ERROR(10001, "参数不合法"),
 
@@ -13,6 +13,8 @@ public enum EmBusinessError implements CommonError{
     USER_LOGIN_FAIL(20002, "用户手机号或密码不正确"),
 
     USER_NOT_LOGIN(20003, "用户还未登录"),
+
+    USER_HAS_EXISTS(20004, "用户已经存在"),
 
     //30000开头为交易信息错误
     STOCK_NOT_ENOUGH(30001, "库存不足"),

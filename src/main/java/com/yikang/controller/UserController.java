@@ -6,6 +6,7 @@ import com.yikang.error.EmBusinessError;
 import com.yikang.response.CommonReturnType;
 import com.yikang.service.UserService;
 import com.yikang.service.model.UserModel;
+import com.yikang.validator.ValidatorImpl;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ public class UserController extends BaseController {
 
     @Autowired
     private HttpServletRequest httpServletRequest;
+
 
 
     @RequestMapping(value = "/login", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)

@@ -104,7 +104,7 @@ public class OrderServiceImpl implements OrderService {
     //这里需要开启新的事务
     //generateOrderNo方法被createOder方法调用，而createOrder方法也是事务的
     //那么意味着，如果在生成订单号之后createOrder某些方法失败了，那么订单号也会回滚
-    //但是订单号本身不允许回滚，只要生成了就能回滚
+    //但是订单号本身不允许回滚，只要生成了就不能回滚
     //因此需要为这个方法开启新的事务，与createOrder的事务相隔离
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateOrderNo() {

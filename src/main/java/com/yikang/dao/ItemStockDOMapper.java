@@ -1,6 +1,7 @@
 package com.yikang.dao;
 
 import com.yikang.dataobject.ItemStockDO;
+import org.apache.ibatis.annotations.Param;
 
 public interface ItemStockDOMapper {
     /**
@@ -50,4 +51,8 @@ public interface ItemStockDOMapper {
      * @mbg.generated Thu Mar 25 17:17:27 CST 2021
      */
     int updateByPrimaryKey(ItemStockDO record);
+
+    ItemStockDO selectByItemId(Integer id);
+
+    int decreaseStock(@Param("itemId") Integer itemId, @Param("amount") Integer amount);
 }

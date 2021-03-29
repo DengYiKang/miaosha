@@ -32,7 +32,6 @@ public class UserController extends BaseController {
     private HttpServletRequest httpServletRequest;
 
 
-
     @RequestMapping(value = "/login", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)
     @ResponseBody
     public CommonReturnType login(@RequestParam(name = "telphone") String telphone,

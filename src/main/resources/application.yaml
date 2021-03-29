@@ -3,7 +3,7 @@ mybatis:
 spring:
   datasource:
     name: miaosha
-    url: jdbc:mysql://1.15.172.26:3306/miaosha?useSSL=false
+    url: jdbc:mysql://1.15.172.26:3306/miaosha?useSSL=false&characterEncoding=utf8
     username: work
     password: 159753
     type: com.alibaba.druid.pool.DruidDataSource

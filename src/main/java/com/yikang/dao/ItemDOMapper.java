@@ -1,6 +1,9 @@
 package com.yikang.dao;
 
 import com.yikang.dataobject.ItemDO;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 public interface ItemDOMapper {
     /**
@@ -50,4 +53,8 @@ public interface ItemDOMapper {
      * @mbg.generated Thu Mar 25 17:17:27 CST 2021
      */
     int updateByPrimaryKey(ItemDO record);
+
+    List<ItemDO> listItem();
+
+    void increaseSales(@Param("id") Integer id, @Param("amount") Integer amount);
 }

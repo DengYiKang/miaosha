@@ -13,3 +13,12 @@ spring:
   web:
     resources:
       add-mappings: false
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    database: 10
+    jedis:
+      pool:
+        max-active: 50
+        min-idle: 20
+    #password:

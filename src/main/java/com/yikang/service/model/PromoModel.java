@@ -2,10 +2,11 @@ package com.yikang.service.model;
 
 import org.joda.time.DateTime;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
 
-public class PromoModel {
+public class PromoModel implements Serializable {
 
     private Integer id;
 

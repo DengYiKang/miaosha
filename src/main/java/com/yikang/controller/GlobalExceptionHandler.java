@@ -6,6 +6,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,6 +21,9 @@ import com.yikang.response.CommonReturnType;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(Exception.class)
     @ResponseBody
     public CommonReturnType doError(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Exception ex) {
@@ -37,6 +42,7 @@ public class GlobalExceptionHandler {
         } else {
             responseData.put("errCode", EmBusinessError.UNKNOWN_ERROR.getErrorCode());
             responseData.put("errMsg", EmBusinessError.UNKNOWN_ERROR.getErrorMsg());
+            logger.error(ex.getMessage());
         }
         return CommonReturnType.create(responseData, "fail");
     }

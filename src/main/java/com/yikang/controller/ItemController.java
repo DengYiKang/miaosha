@@ -3,6 +3,7 @@ package com.yikang.controller;
 import com.yikang.controller.viewobject.ItemVO;
 import com.yikang.error.BusinessException;
 import com.yikang.response.CommonReturnType;
+import com.yikang.service.CacheService;
 import com.yikang.service.ItemService;
 import com.yikang.service.model.ItemModel;
 import org.joda.time.format.DateTimeFormat;
@@ -26,6 +27,9 @@ public class ItemController extends BaseController {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private CacheService cacheService;
 
     //创建商品的Controller
     @RequestMapping(value = "/create", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
@@ -68,14 +72,22 @@ public class ItemController extends BaseController {
     @RequestMapping(value = "/get", method = {RequestMethod.GET})
     @ResponseBody
     public CommonReturnType getItem(@RequestParam(name = "id") Integer id) {
-        //根据商品id到redis内获取
-        ItemModel itemModel = (ItemModel) redisTemplate.opsForValue().get("item_" + id);
+        String key = "item_" + id;
+        //先从本地缓存取
+        ItemModel itemModel = (ItemModel) cacheService.getFromCommonCache(key);
         if (itemModel == null) {
-            itemModel = itemService.getItemById(id);
-            //缓存
-            redisTemplate.opsForValue().set("item_" + id, itemModel);
-            redisTemplate.expire("item_"+id, 10, TimeUnit.MINUTES);
+            //本地缓存未命中，那么到redis中取
+            itemModel = (ItemModel) redisTemplate.opsForValue().get(key);
+            if (itemModel == null) {
+                itemModel = itemService.getItemById(id);
+                //redis缓存
+                redisTemplate.opsForValue().set(key, itemModel);
+                redisTemplate.expire(key, 10, TimeUnit.MINUTES);
+            }
+            //本地缓存
+            cacheService.setCommonCache(key, itemModel);
         }
+        //根据商品id到redis内获取
         ItemVO itemVO = convertFromItemModel(itemModel);
         return CommonReturnType.create(itemVO);
     }

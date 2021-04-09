@@ -126,7 +126,8 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
         int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
-        if (affectedRow > 0) {
+        long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
+        if (result >= 0) {
             //更新库存成功
             return true;
         } else {

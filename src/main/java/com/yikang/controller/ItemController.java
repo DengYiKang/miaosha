@@ -5,6 +5,7 @@ import com.yikang.error.BusinessException;
 import com.yikang.response.CommonReturnType;
 import com.yikang.service.CacheService;
 import com.yikang.service.ItemService;
+import com.yikang.service.PromoService;
 import com.yikang.service.model.ItemModel;
 import org.joda.time.format.DateTimeFormat;
 import org.springframework.beans.BeanUtils;
@@ -30,6 +31,18 @@ public class ItemController extends BaseController {
 
     @Autowired
     private CacheService cacheService;
+
+    @Autowired
+    private PromoService promoService;
+
+
+    @RequestMapping(value = "/publishpromo", method = {RequestMethod.GET})
+    @ResponseBody
+    public CommonReturnType publishpromo(@RequestParam(name = "id") Integer id) {
+        promoService.publishPromo(id);
+        return CommonReturnType.create(null);
+
+    }
 
     //创建商品的Controller
     @RequestMapping(value = "/create", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})

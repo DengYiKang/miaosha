@@ -1,6 +1,8 @@
 package com.yikang.mq;
 
 import com.alibaba.fastjson.JSON;
+import com.yikang.dao.StockLogDOMapper;
+import com.yikang.dataobject.StockLogDO;
 import com.yikang.error.BusinessException;
 import com.yikang.service.OrderService;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -34,6 +36,9 @@ public class MqProducer {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private StockLogDOMapper stockLogDOMapper;
+
     @PostConstruct
     public void init() throws MQClientException {
         //做mq producer的初始化
@@ -53,11 +58,17 @@ public class MqProducer {
                 Integer promoId = (Integer) ((Map) o).get("promoId");
                 Integer itemId = (Integer) ((Map) o).get("itemId");
                 Integer amount = (Integer) ((Map) o).get("amount");
+                String stockLogId = (String) ((Map) o).get("stockLogId");
                 try {
-                    orderService.createOrder(userId, itemId, amount, promoId);
+                    orderService.createOrder(userId, itemId, amount, promoId, stockLogId);
                 } catch (BusinessException e) {
                     e.printStackTrace();
                     //注意这里没有抛出异常，因此需要在上层调用getLocalTransactionState方法来了解异常情况
+
+                    //设置stockLog为回滚状态
+                    StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
+                    stockLogDO.setStatus(3);
+                    stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
                     return LocalTransactionState.ROLLBACK_MESSAGE;
                 }
                 return LocalTransactionState.COMMIT_MESSAGE;
@@ -68,26 +79,34 @@ public class MqProducer {
             @Override
             public LocalTransactionState checkLocalTransaction(MessageExt msg) {
                 //根据是否扣减库存成功，来判断要返回COMMIT、ROLLBACK还是继续UNKNOWN
+                //如果为UNKNOWN，将在之后重新尝试，尝试的间隔不断增大，超过一定次数后将不再尝试
                 String jsonString = new String(msg.getBody());
                 Map<String, Object> map = JSON.parseObject(jsonString, Map.class);
-                Integer itemId = (Integer) map.get("itemId");
-                Integer amount = (Integer) map.get("amount");
-                return null;
+                String stockLogId = (String) map.get("stockLogId");
+                StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
+                if (stockLogDO == null) {
+                    return LocalTransactionState.UNKNOW;
+                }
+                if (stockLogDO.getStatus() == 2) return LocalTransactionState.COMMIT_MESSAGE;
+                else if (stockLogDO.getStatus() == 1) return LocalTransactionState.UNKNOW;
+                else return LocalTransactionState.ROLLBACK_MESSAGE;
             }
         });
     }
 
     //事务型同步库存扣减消息
-    public boolean transactionAsyncReduceStock(Integer userId, Integer promoId, Integer itemId, Integer amount) {
+    public boolean transactionAsyncReduceStock(Integer userId, Integer promoId, Integer itemId, Integer amount, String stockLogId) {
         Map<String, Object> bodyMap = new HashMap<>();
         bodyMap.put("itemId", itemId);
         bodyMap.put("amount", amount);
+        bodyMap.put("stockLogId", stockLogId);
 
         Map<String, Object> argsMap = new HashMap<>();
         argsMap.put("userId", userId);
         argsMap.put("promoId", promoId);
         argsMap.put("itemId", itemId);
         argsMap.put("amount", amount);
+        argsMap.put("stockLogId", stockLogId);
 
         Message message = new Message(topicName, "increase",
                 JSON.toJSON(bodyMap).toString().getBytes(Charset.forName("UTF-8")));

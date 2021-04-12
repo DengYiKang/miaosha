@@ -2,8 +2,10 @@ package com.yikang.service.impl;
 
 import com.yikang.dao.OrderDOMapper;
 import com.yikang.dao.SequenceDOMapper;
+import com.yikang.dao.StockLogDOMapper;
 import com.yikang.dataobject.OrderDO;
 import com.yikang.dataobject.SequenceDO;
+import com.yikang.dataobject.StockLogDO;
 import com.yikang.error.BusinessException;
 import com.yikang.error.EmBusinessError;
 import com.yikang.service.ItemService;
@@ -39,9 +41,12 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private SequenceDOMapper sequenceDOMapper;
 
+    @Autowired
+    private StockLogDOMapper stockLogDOMapper;
+
     @Override
     @Transactional
-    public OrderModel createOrder(Integer userId, Integer itemId, Integer amount, Integer promoId) throws BusinessException {
+    public OrderModel createOrder(Integer userId, Integer itemId, Integer amount, Integer promoId, String stockLogId) throws BusinessException {
         //1. 检验下单状态，下单商品是否存在，用户是否合法，购买数量是否正确
         //ItemModel itemModel = itemService.getItemById(itemId);
         ItemModel itemModel = itemService.getItemByIdInCache(itemId);
@@ -93,6 +98,15 @@ public class OrderServiceImpl implements OrderService {
         //加上商品的销量
         itemService.increaseSales(itemId, amount);
 
+
+        //设置库存流水状态成功
+        //注意这没有行锁竞争，所以引入一个StockLog的操作对性能的影响很小
+        StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
+        if (stockLogDO == null) {
+            throw new BusinessException(EmBusinessError.UNKNOWN_ERROR, "库存流水不存在");
+        }
+        stockLogDO.setStatus(2);
+        stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
 //        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
 //            @Override
 //            public void afterCommit() {

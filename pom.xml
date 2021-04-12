@@ -157,7 +157,7 @@
                     <version>3.0.0</version>
                 </plugin>
                 <!--mybatis-generator-->
-                <!--<plugin>
+                <plugin>
                     <groupId>org.mybatis.generator</groupId>
                     <artifactId>mybatis-generator-maven-plugin</artifactId>
                     <version>1.3.5</version>
@@ -183,15 +183,15 @@
                         </execution>
                     </executions>
                     <configuration>
-                        &lt;!&ndash;允许移动生成的文件&ndash;&gt;
+                        <!--允许移动生成的文件-->
                         <verbose>true</verbose>
-                        &lt;!&ndash;允许自动覆盖文件，注意合作时尽量不要开启&ndash;&gt;
+                        <!--允许自动覆盖文件，注意合作时尽量不要开启-->
                         <overwrite>false</overwrite>
                         <configurationFile>
                             src/main/resources/mybatis-generator.xml
                         </configurationFile>
                     </configuration>
-                </plugin>-->
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>

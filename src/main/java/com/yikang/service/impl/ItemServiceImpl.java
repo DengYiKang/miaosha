@@ -2,8 +2,10 @@ package com.yikang.service.impl;
 
 import com.yikang.dao.ItemDOMapper;
 import com.yikang.dao.ItemStockDOMapper;
+import com.yikang.dao.StockLogDOMapper;
 import com.yikang.dataobject.ItemDO;
 import com.yikang.dataobject.ItemStockDO;
+import com.yikang.dataobject.StockLogDO;
 import com.yikang.error.BusinessException;
 import com.yikang.error.EmBusinessError;
 import com.yikang.mq.MqProducer;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.prefs.BackingStoreException;
 import java.util.stream.Collectors;
@@ -39,6 +42,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private ItemStockDOMapper itemStockDOMapper;
+
+    @Autowired
+    private StockLogDOMapper stockLogDOMapper;
 
     @Autowired
     private PromoService promoService;
@@ -165,6 +171,19 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public void increaseSales(Integer itemId, Integer amount) throws BusinessException {
         itemDOMapper.increaseSales(itemId, amount);
+    }
+
+    //初始化对应的库存流水
+    @Override
+    @Transactional
+    public String initStockLog(Integer itemId, Integer amount) {
+        StockLogDO stockLogDO = new StockLogDO();
+        stockLogDO.setItemId(itemId);
+        stockLogDO.setAmount(amount);
+        stockLogDO.setStockLogId(UUID.randomUUID().toString().replace("-", ""));
+        stockLogDO.setStatus(1);
+        stockLogDOMapper.insertSelective(stockLogDO);
+        return stockLogDO.getStockLogId();
     }
 
     private ItemModel convertModelFromDataObject(ItemDO itemDO, ItemStockDO itemStockDO) {

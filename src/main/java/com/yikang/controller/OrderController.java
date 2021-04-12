@@ -4,6 +4,7 @@ import com.yikang.error.BusinessException;
 import com.yikang.error.EmBusinessError;
 import com.yikang.mq.MqProducer;
 import com.yikang.response.CommonReturnType;
+import com.yikang.service.ItemService;
 import com.yikang.service.OrderService;
 import com.yikang.service.model.OrderModel;
 import com.yikang.service.model.UserModel;
@@ -25,6 +26,9 @@ public class OrderController extends BaseController {
 
     @Autowired
     private HttpServletRequest httpServletRequest;
+
+    @Autowired
+    private ItemService itemService;
 
     @Autowired
     private RedisTemplate redisTemplate;
@@ -50,7 +54,12 @@ public class OrderController extends BaseController {
         }
         //UserModel userModel = (UserModel) httpServletRequest.getSession().getAttribute("LOGIN_USER");
 //        OrderModel orderModel = orderService.createOrder(userModel.getId(), itemId, amount, promoId);
-        if (!mqProducer.transactionAsyncReduceStock(userModel.getId(), promoId, itemId, amount)) {
+
+        //加入库存流水init状态
+        String stockLogId = itemService.initStockLog(itemId, amount);
+
+        //再去完成对应的下单事务型消息
+        if (!mqProducer.transactionAsyncReduceStock(userModel.getId(), promoId, itemId, amount, stockLogId)) {
             throw new BusinessException(EmBusinessError.UNKNOWN_ERROR, "下单失败");
         }
         return CommonReturnType.create(null);

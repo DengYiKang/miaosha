@@ -85,7 +85,7 @@ public class ItemController extends BaseController {
     @RequestMapping(value = "/get", method = {RequestMethod.GET})
     @ResponseBody
     public CommonReturnType getItem(@RequestParam(name = "id") Integer id) {
-        //TODO:下单时只将redis中的item_stock的值进行了更新，但是item_字段的obj也包含了stock，没有对它进行更新，因此在展示页上会出现下单成功但是库存还是原值
+        //TODO:下单时没有对redis以及本地内存缓存的itemModel值进行更新
         String key = "item_" + id;
         //先从本地缓存取
         ItemModel itemModel = (ItemModel) cacheService.getFromCommonCache(key);

@@ -6,12 +6,17 @@ import com.yikang.dataobject.ItemDO;
 import com.yikang.dataobject.ItemStockDO;
 import com.yikang.error.BusinessException;
 import com.yikang.error.EmBusinessError;
+import com.yikang.mq.MqProducer;
 import com.yikang.service.ItemService;
 import com.yikang.service.PromoService;
 import com.yikang.service.model.ItemModel;
 import com.yikang.service.model.PromoModel;
 import com.yikang.validator.ValidationResult;
 import com.yikang.validator.ValidatorImpl;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -40,6 +45,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private MqProducer mqProducer;
 
     private ItemDO converItemDOFromItemModel(ItemModel itemModel) {
         if (itemModel == null) {
@@ -125,13 +133,18 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
-        int affectedRow = itemStockDOMapper.decreaseStock(itemId, amount);
         long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
         if (result >= 0) {
             //更新库存成功
+            boolean mqResult = mqProducer.asyncReduceStock(itemId, amount);
+            if (!mqResult) {
+                redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
+                return false;
+            }
             return true;
         } else {
-            //更新库存失败
+            //更新库存失败,result<0表示现有的资源，现有资源经过减变为负，那么需要加回去
+            redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
             return false;
         }
     }

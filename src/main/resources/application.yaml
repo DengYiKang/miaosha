@@ -22,3 +22,7 @@ spring:
         max-active: 50
         min-idle: 20
     #password:
+mq:
+  nameserver:
+    addr: 8.130.165.253:9876
+  topicname: stock

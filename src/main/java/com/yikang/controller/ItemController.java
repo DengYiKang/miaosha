@@ -44,6 +44,18 @@ public class ItemController extends BaseController {
 
     }
 
+    @RequestMapping(value = "/addstock", method = {RequestMethod.GET})
+    @ResponseBody
+    public CommonReturnType addStock(@RequestParam(name = "itemid") Integer itemId,
+                                     @RequestParam(name = "amount") Integer amount) {
+        itemService.increaseStockInDb(itemId, amount);
+        redisTemplate.delete("promo_item_stock_invalid_" + itemId);
+        redisTemplate.delete("promo_item_stock_" + itemId);
+        redisTemplate.delete("item_" + itemId);
+        cacheService.deleteCommonCache("item_" + itemId);
+        return CommonReturnType.create(null);
+    }
+
     //创建商品的Controller
     @RequestMapping(value = "/create", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody

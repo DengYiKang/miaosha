@@ -9,16 +9,13 @@ import com.yikang.dataobject.StockLogDO;
 import com.yikang.error.BusinessException;
 import com.yikang.error.EmBusinessError;
 import com.yikang.mq.MqProducer;
+import com.yikang.service.CacheService;
 import com.yikang.service.ItemService;
 import com.yikang.service.PromoService;
 import com.yikang.service.model.ItemModel;
 import com.yikang.service.model.PromoModel;
 import com.yikang.validator.ValidationResult;
 import com.yikang.validator.ValidatorImpl;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -28,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.prefs.BackingStoreException;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +47,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private CacheService cacheService;
 
     @Autowired
     private MqProducer mqProducer;
@@ -140,24 +139,50 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException {
         long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
-        if (result >= 0) {
+        if (result > 0) {
             //更新库存成功
-//            boolean mqResult = mqProducer.asyncReduceStock(itemId, amount);
-//            if (!mqResult) {
-//                redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
-//                return false;
-//            }
+            return true;
+        } else if (result == 0) {
+            //打上库存售罄的标识
+            redisTemplate.opsForValue().set("promo_item_stock_invalid_" + itemId, "true");
+            String key = "item_" + itemId;
+            //guava缓存更新stock
+            ItemModel itemModelInGuava = (ItemModel) cacheService.getFromCommonCache(key);
+            if (itemModelInGuava != null) {
+                itemModelInGuava.setStock(0);
+                cacheService.setCommonCache(key, itemModelInGuava);
+            }
+            //redis中更新item中的stock字段
+            ItemModel itemModelInRedis = (ItemModel) redisTemplate.opsForValue().get(key);
+            if (itemModelInRedis != null) {
+                itemModelInRedis.setStock(0);
+                redisTemplate.opsForValue().set(key, itemModelInRedis);
+                redisTemplate.expire(key, 10, TimeUnit.MINUTES);
+            }
+            //更新库存成功
             return true;
         } else {
             //更新库存失败,result<0表示现有的资源，现有资源经过减变为负，那么需要加回去
-            increaseStock(itemId, amount);
+            increaseStockInCache(itemId, amount);
             return false;
         }
     }
 
     @Override
-    public boolean increaseStock(Integer itemId, Integer amount) throws BusinessException {
-        redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
+    public boolean increaseStockInCache(Integer itemId, Integer amount) throws BusinessException {
+        String key = "promo_item_stock_" + itemId;
+        if (!redisTemplate.hasKey(key)) {
+            redisTemplate.opsForValue().set(key, 0);
+        }
+        redisTemplate.opsForValue().increment(key, amount.intValue());
+        return true;
+    }
+
+    @Override
+    public boolean increaseStockInDb(Integer itemId, Integer amount) throws BusinessException {
+        ItemStockDO itemStockDO = itemStockDOMapper.selectByItemId(itemId);
+        itemStockDO.setStock(itemStockDO.getStock() + amount);
+        itemStockDOMapper.updateByPrimaryKeySelective(itemStockDO);
         return true;
     }
 

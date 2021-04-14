@@ -24,7 +24,9 @@ public interface ItemService {
     boolean decreaseStock(Integer itemId, Integer amount) throws BusinessException;
 
     //库存回补
-    boolean increaseStock(Integer itemId, Integer amount) throws BusinessException;
+    boolean increaseStockInCache(Integer itemId, Integer amount) throws BusinessException;
+
+    boolean increaseStockInDb(Integer itemId, Integer amount) throws BusinessException;
 
     //异步更新库存
     boolean asyncDecreaseStock(Integer itemId, Integer amount);
@@ -34,7 +36,6 @@ public interface ItemService {
 
     //初始化库存流水
     String initStockLog(Integer itemId, Integer amount);
-
 
 
 }

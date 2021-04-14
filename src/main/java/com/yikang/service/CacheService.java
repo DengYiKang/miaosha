@@ -7,4 +7,6 @@ public interface CacheService {
 
     //取方法
     Object getFromCommonCache(String key);
+
+    void deleteCommonCache(String key);
 }

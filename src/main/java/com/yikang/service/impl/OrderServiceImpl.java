@@ -47,30 +47,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderModel createOrder(Integer userId, Integer itemId, Integer amount, Integer promoId, String stockLogId) throws BusinessException {
-        //1. 检验下单状态，下单商品是否存在，用户是否合法，购买数量是否正确
-        //ItemModel itemModel = itemService.getItemById(itemId);
+        //不需要检验itemModel与userModel与活动的合法性了，在生成秒杀token时已经进行了检验
         ItemModel itemModel = itemService.getItemByIdInCache(itemId);
-        if (itemModel == null) {
-            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "商品信息不存在");
-        }
-        //UserModel userModel = userService.getUserById(userId);
-        UserModel userModel = userService.getUserByIdInCache(userId);
-        if (userModel == null) {
-            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "用户信息不存在");
+        if(itemModel==null){
+            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "商品信息不正确");
         }
         if (amount <= 0 || amount > 99) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "数量信息不正确");
-        }
-
-        //校验活动信息
-        if (promoId != null) {
-            //1. 检验对应活动是否存在这个适用商品
-            if (promoId.intValue() != itemModel.getPromoModel().getId()) {
-                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "秒杀活动信息不正确");
-            } else if (itemModel.getPromoModel().getStatus() != 2) {
-                //校验活动是否在进行中
-                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "秒杀活动尚未开始");
-            }
         }
 
         //2. 落单减库存
@@ -107,21 +90,6 @@ public class OrderServiceImpl implements OrderService {
         }
         stockLogDO.setStatus(2);
         stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
-//        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
-//            @Override
-//            public void afterCommit() {
-//                //异步更新库存
-//                boolean mqresult = itemService.asyncDecreaseStock(itemId, amount);
-//                //如果将异步发送消息的方法放在外面，即先异步发送消息，然后再commit，但是因为网络的原因等等也可能commit失败，这种情况下这个异步更新就不能回滚了
-//                //但是如果指定异步更新在commit成功后进行，也存在一个问题，就是如果异步更新失败，throw出的runtimeException将不会回滚事务，因为事务已经commit了
-////                if (!mqresult) {
-////                    itemService.increaseStock(itemId, amount);
-////                    throw new BusinessException(EmBusinessError.MQ_SEND_FAIL);
-////                }
-//            }
-//        });
-
-
         //4. 返回前端
         return orderModel;
     }

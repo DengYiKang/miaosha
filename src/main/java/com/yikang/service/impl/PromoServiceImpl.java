@@ -62,10 +62,18 @@ public class PromoServiceImpl implements PromoService {
         ItemModel itemModel = itemService.getItemById(promoDO.getItemId());
         //将库存同步到redis内
         redisTemplate.opsForValue().set("promo_item_stock_" + itemModel.getId(), itemModel.getStock());
+        //将大闸的限制数字设到redis内
+        redisTemplate.opsForValue().set("promo_door_count_" + promoId, itemModel.getStock().intValue() * 5);
     }
 
     @Override
     public String generateSecondKillToken(Integer promoId, Integer itemId, Integer userId) {
+
+        //判断库存是否已经售罄，若对应的售罄key存在。则世直接返回下单失败
+        if (redisTemplate.hasKey("promo_item_stock_invalid_" + itemId)) {
+            return null;
+        }
+
         PromoDO promoDO = promoDOMapper.selectByPrimaryKey(promoId);
         PromoModel promoModel = convertFromDataObject(promoDO);
 
@@ -103,6 +111,12 @@ public class PromoServiceImpl implements PromoService {
             }
         }
 
+
+        //获取秒杀大闸的count数量
+        long result = (long) redisTemplate.opsForValue().increment("promo_door_count_" + promoId, -1);
+        if (result < 0) {
+            return null;
+        }
         String token = UUID.randomUUID().toString().replace("-", "");
         String key = "promo_token_" + promoId + "_userid_" + userId + "_itemid" + itemId;
         redisTemplate.opsForValue().set(key, token);

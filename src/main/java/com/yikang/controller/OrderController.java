@@ -1,5 +1,6 @@
 package com.yikang.controller;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.yikang.error.BusinessException;
 import com.yikang.error.EmBusinessError;
 import com.yikang.mq.MqProducer;
@@ -50,9 +51,12 @@ public class OrderController extends BaseController {
 
     private ExecutorService executorService;
 
+    private RateLimiter orderCreateRateLimiter;
+
     @PostConstruct
     public void init() {
         executorService = Executors.newFixedThreadPool(20);
+        orderCreateRateLimiter = RateLimiter.create(300);
     }
 
 
@@ -116,6 +120,10 @@ public class OrderController extends BaseController {
                                         @RequestParam(name = "amount") Integer amount,
                                         @RequestParam(name = "promoId", required = false) Integer promoId,
                                         @RequestParam(name = "promoToken", required = false) String promoToken) throws BusinessException {
+        if (!orderCreateRateLimiter.tryAcquire()) {
+            throw new BusinessException(EmBusinessError.RATELIMIT);
+        }
+
         String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户尚未登录");

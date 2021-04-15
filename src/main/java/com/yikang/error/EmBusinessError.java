@@ -21,6 +21,8 @@ public enum EmBusinessError implements CommonError {
 
     MQ_SEND_FAIL(30002, "库存异步消息失败"),
 
+    RATELIMIT(30003, "活动太火爆，请稍候尝试"),
+
     ;
 
     private EmBusinessError(int errCode, String errMsg) {
